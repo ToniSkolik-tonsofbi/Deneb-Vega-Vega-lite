@@ -21,3 +21,6 @@ Toni Skolik
 - [Website](https://tonsofbi.com/)
 
 © Toni Skolik
+
+All images in this repository are Copyright (c) 2025 Toni Skolik.
+Unauthorized use, reproduction, or distribution is prohibited.
