@@ -1,0 +1,438 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
+  "autosize": {
+    "type": "fit",
+    "resize": true,
+    "contains": "padding"
+  },
+  "signals": [
+    {
+      "name": "padDays",
+      "value": 40
+    },
+    {
+      "name": "msPerDay",
+      "value": 86400000
+    },
+    {
+      "name": "axisMin",
+      "update": "data('axisRangeWithPadding')[0]['axes_min']"
+    },
+    {
+      "name": "axisMax",
+      "update": "data('axisRangeWithPadding')[0]['axes_max']"
+    },
+    {
+      "name": "x_init",
+      "update": "[axisMin, axisMax]"
+    },
+    {
+      "name": "y_init",
+      "update": "[axisMin, axisMax]"
+    },
+    {
+      "name": "down",
+      "value": null,
+      "on": [
+        { "events": "touchend", "update": "null" },
+        { "events": "pointerdown, touchstart", "update": "xy()" }
+      ]
+    },
+    {
+      "name": "xcur",
+      "value": null,
+      "on": [
+        {
+          "events": "pointerdown, touchstart, touchend",
+          "update": "slice(xdom)"
+        }
+      ]
+    },
+    {
+      "name": "ycur",
+      "value": null,
+      "on": [
+        {
+          "events": "pointerdown, touchstart, touchend",
+          "update": "slice(ydom)"
+        }
+      ]
+    },
+    {
+      "name": "delta",
+      "value": [0, 0],
+      "on": [
+        {
+          "events": [
+            {
+              "source": "window",
+              "type": "pointermove",
+              "consume": true,
+              "between": [
+                { "type": "pointerdown" },
+                { "source": "window", "type": "pointerup" }
+              ]
+            },
+            {
+              "type": "touchmove",
+              "consume": true,
+              "filter": "event.touches.length === 1"
+            }
+          ],
+          "update": "down ? [down[0]-x(), y()-down[1]] : [0,0]"
+        }
+      ]
+    },
+    {
+      "name": "xdom",
+      "update": "slice(x_init)",
+      "on": [
+        {
+          "events": { "signal": "delta" },
+          "update": "[xcur[0] + span(xcur) * delta[0] / width, xcur[1] + span(xcur) * delta[0] / width]"
+        },
+        {
+          "events": "wheel!",
+          "update": "zoomLinear(xdom, invert('x', x()), pow(1.01, event.deltaY))"
+        },
+        {
+          "events": "dblclick!",
+          "update": "slice(x_init)"
+        }
+      ]
+    },
+    {
+      "name": "ydom",
+      "update": "slice(y_init)",
+      "on": [
+        {
+          "events": { "signal": "delta" },
+          "update": "[ycur[0] + span(ycur) * delta[1] / height, ycur[1] + span(ycur) * delta[1] / height]"
+        },
+        {
+          "events": "wheel!",
+          "update": "zoomLinear(ydom, invert('y', y()), pow(1.01, event.deltaY))"
+        },
+        {
+          "events": "dblclick!",
+          "update": "slice(y_init)"
+        }
+      ]
+    },
+    {
+      "name": "axes_min",
+      "update": "min(xdom[0], ydom[0])"
+    },
+    {
+      "name": "axes_max",
+      "update": "max(xdom[1], ydom[1])"
+    }
+  ],
+  "data": [
+    {
+      "name": "dataset"
+    },
+    {
+      "name": "datasetFiltered",
+      "source": "dataset",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "(isDate(datum['Report Date']) || (isValid(datum['Report Date']) && isFinite(+datum['Report Date']))) && (isDate(datum['Milestones Date']) || (isValid(datum['Milestones Date']) && isFinite(+datum['Milestones Date'])))"
+        }
+      ]
+    },
+    {
+      "name": "selectedSeries",
+      "source": "dataset",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum['__selected__'] == 'on'"
+        },
+        {
+          "type": "aggregate",
+          "groupby": ["Milestones Name"]
+        }
+      ]
+    },
+    {
+      "name": "axisRangeWithPadding",
+      "source": "datasetFiltered",
+      "transform": [
+        {
+          "type": "aggregate",
+          "groupby": [],
+          "ops": ["min", "min", "max"],
+          "fields": ["Report Date", "Milestones Date", "Milestones Date"],
+          "as": [
+            "min_Report_Date_axis",
+            "min_Milestones_Date_axis",
+            "max_Milestones_Date_axis"
+          ]
+        },
+        {
+          "type": "formula",
+          "as": "axes_min",
+          "expr": "min(datum['min_Report_Date_axis'], datum['min_Milestones_Date_axis']) - padDays * msPerDay"
+        },
+        {
+          "type": "formula",
+          "as": "axes_max",
+          "expr": "max(datum['max_Milestones_Date_axis']) + padDays * msPerDay"
+        }
+      ]
+    },
+    {
+      "name": "latestMilestonePerName",
+      "source": "datasetFiltered",
+      "transform": [
+        {
+          "type": "aggregate",
+          "groupby": ["Milestones Name"],
+          "ops": ["argmax"],
+          "fields": ["Report Date"],
+          "as": ["argmax_ReportDate"]
+        },
+        {
+          "type": "filter",
+          "expr": "(isDate(datum['argmax_ReportDate']['Report Date']) || (isValid(datum['argmax_ReportDate']['Report Date']) && isFinite(+datum['argmax_ReportDate']['Report Date']))) && (isDate(datum['argmax_ReportDate']['Milestones Date']) || (isValid(datum['argmax_ReportDate']['Milestones Date']) && isFinite(+datum['argmax_ReportDate']['Milestones Date'])))"
+        }
+      ]
+    }
+  ],
+  "marks": [
+    {
+      "name": "target_area",
+      "type": "path",
+      "clip": true,
+      "encode": {
+        "update": {
+          "fill": { "value": "white" },
+          "stroke": { "value": "#dddddd" },
+          "path": {
+            "signal": "'M ' + scale('x', axes_min) + ' ' + scale('y', axes_min) + ' L ' + scale('x', axes_max) + ' ' + scale('y', axes_min) + ' L ' + scale('x', axes_max) + ' ' + scale('y', axes_max) + ' Z'"
+          },
+          "zindex": { "value": 0 }
+        }
+      }
+    },
+    {
+      "name": "diag",
+      "type": "rule",
+      "clip": true,
+      "encode": {
+        "update": {
+          "stroke": { "value": "#E5E5E5" },
+          "strokeDash": { "value": [4, 4] },
+          "x": { "signal": "scale('x', axes_min)" },
+          "y": { "signal": "scale('y', axes_min)" },
+          "x2": { "signal": "scale('x', axes_max)" },
+          "y2": { "signal": "scale('y', axes_max)" }
+        }
+      }
+    },
+    {
+      "name": "milestoneTrendLineGroup",
+      "type": "group",
+      "from": {
+        "facet": {
+          "name": "milestoneTrendLineFacet",
+          "data": "datasetFiltered",
+          "groupby": ["Milestones Name"]
+        }
+      },
+      "encode": {
+        "update": {
+          "width": { "field": { "group": "width" } },
+          "height": { "field": { "group": "height" } }
+        }
+      },
+      "marks": [
+        {
+          "name": "milestoneTrendLine",
+          "type": "line",
+          "clip": true,
+          "sort": { "field": "x" },
+          "from": { "data": "milestoneTrendLineFacet" },
+          "encode": {
+            "update": {
+              "tooltip": {
+                "signal": "{ \"task_code\": datum['task_code'], \"Milestones Name\": datum['Milestones Name'], \"Report Date\": timeFormat(datum['Report Date'], '%b %d, %Y'), \"Milestones Date\": timeFormat(datum['Milestones Date'], '%b %d, %Y') }"
+              },
+              "stroke": { "scale": "color", "field": "Milestones Name" },
+              "strokeWidth": {
+                "signal": "data('selectedSeries').length && indata('selectedSeries', 'Milestones Name', datum['Milestones Name']) ? 4 : 3"
+              },
+              "strokeOpacity": {
+                "signal": "data('selectedSeries').length && !indata('selectedSeries', 'Milestones Name', datum['Milestones Name']) ? 0.15 : 1"
+              },
+              "x": { "scale": "x", "field": "Report Date" },
+              "y": { "scale": "y", "field": "Milestones Date" },
+              "defined": {
+                "signal": "isValid(datum['Report Date']) && isFinite(+datum['Report Date']) && isValid(datum['Milestones Date']) && isFinite(+datum['Milestones Date'])"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "milestoneTrendPoints",
+      "type": "symbol",
+      "clip": true,
+      "from": { "data": "datasetFiltered" },
+      "encode": {
+        "update": {
+          "opacity": {
+            "signal": "data('selectedSeries').length && !indata('selectedSeries', 'Milestones Name', datum['Milestones Name']) ? 0.2 : 1"
+          },
+          "size": {
+            "signal": "data('selectedSeries').length && indata('selectedSeries', 'Milestones Name', datum['Milestones Name']) ? 70 : 30"
+          },
+          "shape": { "value": "circle" },
+          "tooltip": {
+            "signal": "{ \"task_code\": datum['task_code'], \"Milestones Name\": datum['Milestones Name'], \"Report Date\": timeFormat(datum['Report Date'], '%b %d, %Y'), \"Milestones Date\": timeFormat(datum['Milestones Date'], '%b %d, %Y') }"
+          },
+          "fill": { "value": "white" },
+          "stroke": { "scale": "color", "field": "Milestones Name" },
+          "strokeWidth": { "value": 2 },
+          "x": { "scale": "x", "field": "Report Date" },
+          "y": { "scale": "y", "field": "Milestones Date" }
+        }
+      }
+    },
+    {
+      "name": "milestoneLatestLabels",
+      "type": "text",
+      "clip": true,
+      "from": { "data": "latestMilestonePerName" },
+      "encode": {
+        "update": {
+          "font": { "value": "Segoe UI" },
+          "fontSize": { "value": 12 },
+          "align": { "value": "left" },
+          "dx": { "value": 12 },
+          "fill": { "scale": "color", "field": "Milestones Name" },
+          "x": {
+            "scale": "x",
+            "field": "argmax_ReportDate['Report Date']"
+          },
+          "y": {
+            "scale": "y",
+            "field": "argmax_ReportDate['Milestones Date']"
+          },
+          "text": {
+            "signal": "datum['Milestones Name']"
+          },
+          "baseline": { "value": "middle" }
+        }
+      },
+      "transform": [
+        {
+          "type": "label",
+          "anchor": ["right"],
+          "overlap": false,
+          "size": {
+            "signal": "[width + 700 + 0 * xdom[0] + 0 * xdom[1], height]"
+          }
+        }
+      ]
+    }
+  ],
+  "scales": [
+    {
+      "name": "x",
+      "type": "time",
+      "domain": { "signal": "xdom" },
+      "range": [0, { "signal": "width" }]
+    },
+    {
+      "name": "y",
+      "type": "time",
+      "domain": { "signal": "ydom" },
+      "range": [{ "signal": "height" }, 0]
+    },
+    {
+      "name": "color",
+      "type": "ordinal",
+      "domain": {
+        "data": "datasetFiltered",
+        "field": "Milestones Name",
+        "sort": true
+      },
+      "range": [
+        "#FF7A1A",
+        "#FF6A00",
+        "#E65F00",
+        "#CC5400",
+        "#1E8896",
+        "#187886",
+        "#136870",
+        "#0F565C",
+        "#6AB9A0",
+        "#5AA98F",
+        "#4A997F",
+        "#3A896F",
+        "#E84F1E",
+        "#D64518",
+        "#C33B14",
+        "#A93012",
+        "#990034",
+        "#88002E",
+        "#760027",
+        "#630021",
+        "#447583",
+        "#3B6874",
+        "#335B64",
+        "#2A4D54"
+      ]
+    }
+  ],
+  "axes": [
+    {
+      "scale": "x",
+      "orient": "top",
+      "gridColor": "#E5E5E5",
+      "gridOpacity": 0.7,
+      "domainColor": "#666666",
+      "grid": true,
+      "title": "Report Date",
+      "labelOverlap": false,
+      "labelFlush": false,
+      "titleFont": "Segoe UI light",
+      "titleFontSize": 12,
+      "titleFontWeight": "bold"
+    },
+    {
+      "scale": "y",
+      "orient": "left",
+      "grid": true,
+      "gridColor": "#E5E5E5",
+      "gridOpacity": 0.7,
+      "domainColor": "#666666",
+      "title": "Milestones Date",
+      "labelOverlap": false,
+      "titleFont": "Segoe UI light",
+      "titleFontSize": 12,
+      "titleFontWeight": "bold",
+      "titlePadding": 8,
+      "encode": {
+        "title": {
+          "update": {
+            "x": { "value": -60 },
+            "y": { "signal": "height / 2" },
+            "angle": { "value": -90 },
+            "align": { "value": "center" },
+            "baseline": { "value": "middle" }
+          }
+        }
+      }
+    }
+  ],
+  "config": {
+    "style": {
+      "cell": { "stroke": null }
+    }
+  }
+}
