@@ -1,4 +1,4 @@
-# <img src="https://github.com/ToniSkolik-tonsofbi/Deneb-Vega/blob/main/images/Favicon.png" width="30" height="30" style="vertical-align: middle; position: relative; top: 30px;"> Deneb | Vega | Vega-lite | .pbix samples
+# Deneb | Vega | Vega-lite | .pbix samples
 Vega and Vega-lite code &amp; templates of custom Deneb Visuals in Power BI, with example .pbix files for free
 
 ## Author of the content
