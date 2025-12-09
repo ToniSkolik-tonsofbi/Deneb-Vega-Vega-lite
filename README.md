@@ -11,7 +11,7 @@ Please note that I am no expert on this topic! I post these example implementati
 ## Samples
 <p align="left">
   <img src="https://github.com/ToniSkolik-tonsofbi/Deneb-Vega/raw/main/images/20251209_202615.gif"
-       width="250" height="250" alt="MTA">
+       width="500" height="400" alt="MTA">
 </p>
 
 
