@@ -3,7 +3,7 @@ Vega and Vega-lite code & templates of custom Deneb Visuals in Power BI, with ex
 
 <p align="center">
   <img src="https://github.com/ToniSkolik-tonsofbi/Deneb-Vega/blob/main/images/Favicon.png"
-       width="150" height="150" alt="Tons of BI logo">
+       width="250" height="250" alt="Tons of BI logo">
 </p>
 
 ## Author of the content
